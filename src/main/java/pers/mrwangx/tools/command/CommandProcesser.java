@@ -8,6 +8,8 @@ import pers.mrwangx.tools.command.entity.CmdInfo;
 import pers.mrwangx.tools.command.entity.VerifyInfo;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 
 /**
@@ -19,9 +21,29 @@ import java.util.*;
 public class CommandProcesser {
 
     private Map<String, CmdInfo> cmdInfoMap;
+    private Object targetObj;
+    private Map<String, Method> processors;
+
+    public static void main(String[] args) {
+        Scanner input = new Scanner(System.in);
+        CommandProcesser processer = new CommandProcesser("pers.mrwangx.tools.command.command");
+        processer.initProcessors(processer);
+        String in = input.nextLine();
+        processer.process(in);
+    }
 
     public CommandProcesser(String packageName) {
         this.cmdInfoMap = loadCommands(packageName);
+    }
+
+    public CommandProcesser(String packageName, Object targetObj) {
+        this.cmdInfoMap = loadCommands(packageName);
+        this.initProcessors(targetObj);
+    }
+
+    public void initProcessors(Object targetObj) {
+        this.targetObj = targetObj;
+        processors = loadProcessors(targetObj);
     }
 
     public CmdInfo getCmdInfoFromInput(String input) {
@@ -32,6 +54,26 @@ public class CommandProcesser {
 
     public CmdInfo getCmdInfo(String cmd) {
         return cmdInfoMap.get(cmd);
+    }
+
+    public void process(String input) {
+        VerifyInfo verifyInfo = this.verifyInput(input);
+        if (verifyInfo.isFlag()) {
+            Method m = processors.get(verifyInfo.getCmdName());
+            if (m == null) {
+                System.out.println("没有相应的处理方法");
+                return;
+            }
+            try {
+                m.invoke(targetObj, verifyInfo.getArgValues());
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (InvocationTargetException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println(verifyInfo.getMessage());
+        }
     }
 
     @Display("命令")
@@ -54,20 +96,17 @@ public class CommandProcesser {
         return verifyCommand(input, cmdInfo);
     }
 
-    public static void main(String[] args) {
-        CommandProcesser processer = new CommandProcesser("pers.mrwangx.tools.command.command");
-        System.out.println(DisplayProcessor.toString(processer));
-    }
-
 
     /**
      * 验证命令
+     *
      * @param input
      * @param cmdInfo
      * @return
      */
     public static VerifyInfo verifyCommand(String input, CmdInfo cmdInfo) {
         VerifyInfo verifyInfo = new VerifyInfo();
+        verifyInfo.setCmdName(cmdInfo.getCmdName());
         if (cmdInfo == null) {
             return verifyInfo.setFlag(false).setMessage("命令信息不能为空");
         }
@@ -95,6 +134,7 @@ public class CommandProcesser {
 
     /**
      * 验证参数
+     *
      * @param arg
      * @param argInfo
      * @return
@@ -105,6 +145,7 @@ public class CommandProcesser {
 
     /**
      * 获取命令
+     *
      * @param packageName
      * @return
      */
@@ -146,6 +187,30 @@ public class CommandProcesser {
             }
         });
         return cmdInfoMap;
+    }
+
+
+    public static Map<String, Method> loadProcessors(Object targetObj) {
+        Map<String, Method> processors = new HashMap<>();
+        if (targetObj != null) {
+            Class clazz = targetObj.getClass();
+            Method[] methods = clazz.getDeclaredMethods();
+            for (Method m : methods) {
+                if (m.isAnnotationPresent(Cmd.Processor.class)) {
+                    Cmd.Processor processor = m.getAnnotation(Cmd.Processor.class);
+                    String value = processor.value();
+                    String name = "";
+                    if (value.equals("")) {
+                        name = m.getName();
+                    } else {
+                        name = value;
+                    }
+                    m.setAccessible(true);
+                    processors.put(name, m);
+                }
+            }
+        }
+        return processors;
     }
 
 }

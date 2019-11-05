@@ -10,6 +10,8 @@ import pers.mrwangx.commons.tool.display.annotation.Display;
  **/
 public class VerifyInfo {
 
+    @Display("命令名称")
+    private String cmdName;
     @Display("是否成功")
     private boolean flag;
     @Display("验证结果信息")
@@ -20,7 +22,8 @@ public class VerifyInfo {
     public VerifyInfo() {
     }
 
-    public VerifyInfo(boolean flag, String message, String[] values) {
+    public VerifyInfo(String cmdName, boolean flag, String message, String[] values) {
+        this.cmdName = cmdName;
         this.flag = flag;
         this.message = message;
         this.argValues = values;
@@ -69,5 +72,12 @@ public class VerifyInfo {
         return this;
     }
 
+    public String getCmdName() {
+        return cmdName;
+    }
 
+    public VerifyInfo setCmdName(String cmdName) {
+        this.cmdName = cmdName;
+        return this;
+    }
 }

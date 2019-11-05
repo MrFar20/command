@@ -34,6 +34,11 @@ public @interface Cmd {
         int order() default 0;
     }
 
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @interface Processor {
+        String value() default "";
+    }
 
 
 }
