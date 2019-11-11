@@ -44,7 +44,7 @@ public class CmdInfo {
         private String regex;
         @Display("描述")
         private String description;
-        @Display
+        @Display("参数顺序")
         private int order;
 
         public ArgInfo() {
